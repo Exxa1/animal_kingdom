@@ -70,7 +70,8 @@ def initialize_grid(cell_count_x, cell_count_y, fish_count, bear_count):
 
     return grid
 
-def get_neighbors(grid, row_index, column_index):
+def get_neighbours(grid, row_index, column_index):
+    # collects the indexes of the neighbouring cells
     row_min, column_min = 0, 0
     row_max, column_max = grid.shape
     row_max, column_max = row_max - 1, column_max - 1 # it's off by one
@@ -140,40 +141,41 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours)
 
     return grid
 
-def bear_rules(cur,r,c,neighbour_fish, neighbour_empty):
-    if cur[r, c]['age'] >= bear_breed_age:
-        cur[r, c]['col'] = col_breeding_bear
+def bear_rules(grid,row_index,column_index,fish_neighbours, empty_neighbours):
+    if grid[row_index, column_index]['age'] >= BEAR_BREED_AGE:
+        grid[row_index, column_index]['color'] = BREEDING_BEAR_COLOR
     else:
-        cur[r, c]['col'] = col_young_bear
+        grid[row_index, column_index]['color'] = YOUNG_BEAR_COLOR
 
-    if cur[r, c]['food'] <= 3:
-        cur[r, c]['col'] = col_starving_bear
+    if grid[row_index, column_index]['food'] <= 3:
+        grid[row_index, column_index]['color'] = STARVING_BEAR_COLOR
+
     # if there is a fish eat it
-    if len(neighbour_fish) > 0:
-        cur[r, c]['food'] = bear_starvation
-        r_fish, c_fish = random.choice(neighbour_fish)
-        neighbour_fish.remove((r_fish, c_fish))
-        neighbour_empty.append((r_fish, c_fish))
-        cur[r_fish, c_fish] = empty()
+    if len(fish_neighbours) > 0:
+        grid[row_index, column_index]['food'] = INITIAL_BEAR_FOOD
+        row_index_fish, column_index_fish = random.choice(fish_neighbours)
+        fish_neighbours.remove((row_index_fish, column_index_fish))
+        empty_neighbours.append((row_index_fish, column_index_fish))
+        grid[row_index_fish, column_index_fish] = nem_empty()
     else:
         # decrease food
-        cur[r, c]['food'] -= 1
+        grid[row_index, column_index]['food'] -= 1
 
     # if the bear is starved it dies
-    if cur[r, c]['food'] <= 0:
-        cur[r, c] = empty()
+    if grid[row_index, column_index]['food'] <= 0:
+        grid[row_index, column_index] = new_empty()
     else:  # if the bear is not dead it, first, tries to breed
-        if cur[r, c]['age'] >= bear_breed_age and len(neighbour_empty) > 0:
+        if grid[row_index, column_index]['age'] >= BEAR_BREED_AGE and len(empty_neighbours) > 0:
             # fish breeds to an empty cell
-            r_new, c_new = random.choice(neighbour_empty)
-            cur[r_new, c_new] = new_bear()
-            neighbour_empty.remove((r_new, c_new))
+            row_index_new, column_index_new = random.choice(empty_neighbours)
+            grid[row_index_new, column_index_new] = new_bear()
+            empty_neighbours.remove((r_new, c_new))
         # it tries to move
-        if len(neighbour_empty) > 0:
-            r_new, c_new = random.choice(neighbour_empty)
-            cur[r_new, c_new] = cur[r, c]
-            cur[r, c] = empty()
-    return cur
+        if len(empty_neighbours) > 0:
+            row_index_new, column_index_new = random.choice(empty_neighbours)
+            grid[row_index_new, column_index_new] = grid[row_index, column_index]
+            grid[row_index, column_index] = new_empty()
+    return grid
 
 def update_grid(surface, grid):
     # for each cell
@@ -184,6 +186,7 @@ def update_grid(surface, grid):
             grid[row_index, column_index]['age'] += 1
 
             # calculate neighbours and find the empty and the fish neighbours (other bears are not important, currently)
+
             neighbours = get_neighbours(grid, row_index, column_index)
             fish_neighbours, empty_neighbours = sort_neighbours(grid, neighbours)
 
