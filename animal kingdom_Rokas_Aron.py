@@ -1,80 +1,103 @@
 import pygame, random
 import numpy as np
 
-col_new_fish = (0, 128, 255)
-col_young_fish = (15,82,186)
-col_breeding_fish = (220,35,157)
+# Colors
 
-col_new_bear = (150,75,0)
-col_young_bear = (165,113,78)
-col_breeding_bear = (150,75,0)
-col_starving_bear = (75,75,75)
+NEW_FISH_COLOR = (0, 128, 255)
+YOUNG_FISH_COLOR = (15,82,186)
+BREEDING_FISH_COLOR = (220,35,157)
 
-col_empty = (213, 196, 161)
-col_grid = (30, 30, 60)
+NEW_BEAR_COLOR = (150,75,0)
+YOUNG_BEAR_COLOR = (165,113,78)
+BREEDING_BEAR_COLOR = (150,75,0)
+STARVING_BEAR_COLOR = (75,75,75)
+
+EMPTY_CELL_COLOR = (213, 196, 161)
+GRID_COLOR = (30, 30, 60)
 
 FRAMES_PER_SECOND = 60
 SPEED = 15
 
+
 # Fish initial definition
-fish_breed_age = 12     # 12
-fish_overcrowding = 2   # 2
+FISH_BREED_AGE = 12     # 12
+FISH_OVERCROWDING = 2   # 2
+
 def new_fish():
-    fish = {'type': 'fish', 'age': 0, 'col':col_new_fish}
+    fish = {
+        'type': 'fish',
+        'age': 0,
+        'color': NEW_FISH_COLOR,
+    }
+
     return fish
 
 # Bear initial definition
-bear_breed_age = 8      # 8
-bear_starvation = 10    # 10
+BEAR_BREED_AGE = 8  # 8
+INITIAL_BEAR_FOOD = 8
+
 def new_bear():
-    bear = {'type': 'bear', 'age': 0, 'food': bear_starvation, 'col':col_new_bear}
+    bear = {
+        'type': 'bear',
+        'age': 0,
+        'food': INITIAL_BEAR_FOOD,
+        'col': NEW_BEAR_COLOR,
+    }
+
     return bear
 
-def empty():
-    return {'type': 'empty'}
+def new_empty():
+    return {
+        'type': 'empty',
+    }
 
-def init(dimx, dimy, fish, bear):
-    """Creates a starting grid, of dimension dimx * dimy and inserts {fish} new fishes and {bear} new bears.
-       The rest of the cells in the grid are filled with empty dictionaries. """
+def init(dimensions_x, dimensions_y, fish_count, bear_count):
     # create a list with fish fishes, bear bears and the rest (dimx*dimy-fish-bear) are empty  and shuffle them
-    content_list = [new_fish()]*fish + [new_bear()]*bear + [empty()]*(dimx*dimy-fish-bear)
-    random.shuffle(content_list)
-    # typecast the into a numpy array and reshape the 1 dimensional array to dimx * dimy
-    cells_array = np.array(content_list)
-    cells = np.reshape(cells_array, (dimy, dimx)) # the shape information is given in an  odd order
-    return cells
+    content_list = []
 
-# cur: the current array of cells,  r and c the row and column position which we are finding neighbours for.
-def get_neighbors(cur, r, c):
-    """Computes a list with the neighbouring cell positions of (r,c) in the grid {cur}"""
-    r_min, c_min = 0 , 0
-    r_max, c_max = cur.shape
-    r_max, c_max = r_max -1 , c_max-1 # it's off by one
+    for i in range(fish_count):
+        content_list.append(new_fish())
+    for i in range(bear_count):
+        content_list.append(new_bear())
+    for i in range((dimensions_x * dimensions_y - fish_count - bear_count)):
+        content_list.append(new_empty())
+
+    random.shuffle(content_list)
+
+    # typecast the into a numpy array and reshape the 1 dimensional array to dimx * dimy
+    content_1Darray = np.array(content_list)
+    grid = np.reshape(content_1Darray, (dimensions_y, dimensions_x)) # First argument is for column count, the second arg. takes the length of each row
+
+    return grid
+
+def get_neighbors(grid, row_index, column_index):
+    row_min, column_min = 0, 0
+    row_max, column_max = grid.shape
+    row_max, column_max = row_max - 1, column_max - 1 # it's off by one
     # r-1,c-1 | r-1,c  | r-1,c+1
     # --------|--------|---------
     # r  ,c-1 | r  ,c  | r  ,c+1
     # --------|--------|---------
     # r+1,c-1 | r+1,c  | r+1,c+1
     neighbours = []
+
     # r-1:
-    if r-1 >= r_min :
-        if c-1 >= c_min: neighbours.append((r-1,c-1))
-        neighbours.append((r-1,c))  # c is inside cur
-        if c+1 <= c_max: neighbours.append((r - 1, c+1))
+    if row_index - 1 >= row_min :
+        if column_index - 1 >= column_min: neighbours.append((row_index - 1, column_index - 1))
+        neighbours.append((row_index - 1, column_index))  # c is inside the grid
+        if column_index + 1 <= column_max: neighbours.append((row_index - 1, column_index + 1))
     # r:
-    if c-1 >= c_min: neighbours.append((r,c-1))
+    if column_index - 1 >= column_min: neighbours.append((row_index, column_index - 1))
     # skip center (r,c) since we are listing its neighbour positions
-    if c + 1 <= c_max: neighbours.append((r,c+1))
+    if column_index + 1 <= column_max: neighbours.append((row_index, column_index + 1))
     # r+1:
-    if r + 1 <= r_max:
-        if c - 1 >= c_min: neighbours.append((r+1,c-1))
-        neighbours.append((r+1, c))  # c is inside cur
-        if c + 1 <= c_max: neighbours.append((r+1,c+1))
+    if row_index + 1 <= row_max:
+        if column_index - 1 >= column_min: neighbours.append((row_index + 1, column_index - 1))
+        neighbours.append((row_index + 1, column_index))  # c is inside cur
+        if column_index + 1 <= column_max: neighbours.append((row_index + 1, column_index + 1))
     return neighbours
 
 def neighbour_fish_empty_rest(cur,neighbours):
-    """ Given a current grid and a set of neighbouring positions, it divides the neighbours into three lists: """
-    """ fish-neighbours, empty-neighbours cells and the rest"""
     # divide the neighbours into fish, empty cells and the rest
     fish_neighbours =[]
     empty_neighbours =[]
@@ -92,39 +115,72 @@ def neighbour_fish_empty_rest(cur,neighbours):
 
 
 def fish_rules(cur,r,c,neighbour_fish, neighbour_empty):
-    """ Given the current grid {cur}, a position (r,c) which contains a fish, and a list of grid-positions for the
-    fish-neighbours  and a list of grid-positions of empty neighbour cells. Update the grid according to the fish-rules"""
-    # fish age += 1
-    # if neighbouring_fish >= kill
-    # if fish_age == fish_breed_age
-    #     new fish
-    # if neighbour_empty
-    #     move
-    # print(neighbour_fish)
-    # print(len(neighbour_fish))
-    if len(neighbour_empty) >= 1:
-        r_new, c_new = neighbour_empty[random.randint(1, len(neighbour_empty)) - 1]
+    if cur[r, c]['age'] >= 12:
+        cur[r, c]['col'] = col_breeding_fish
+    else:
+        cur[r, c]['col'] = col_young_fish
+
+    # breeding
+    if (cur[r, c]['age'] >= 12 and len(neighbour_empty) > 0):
+        # fish breeds to an empty cell
+        r_new, c_new = random.choice(neighbour_empty)
+        cur[r_new, c_new] = new_fish()
+        neighbour_fish.append((r_new, c_new))
+        neighbour_empty.remove((r_new, c_new))
+    # # the dies (overcrowding) if there are 2 or more neighbouring fish
+    if len(neighbour_fish) >= fish_overcrowding:
+        cur[r, c] = empty()
+    # if it does not die
+    elif len(neighbour_empty) > 0:
+        # move fish to an empty cell
+        r_new, c_new = random.choice(neighbour_empty)
         cur[r_new, c_new] = cur[r, c]
         cur[r, c] = empty()
 
-    # if len(neighbour_fish) >= 2:
-    #     cur[r, c]['type'] = 'empty'
-
-
-    # implement the fish rules
     return cur
 
 def bear_rules(cur,r,c,neighbour_fish, neighbour_empty):
-    """ Given the current grid {cur}, a position (r,c) which contains a bear, and a list of grid-positions for the
-    fish-neighbours  and a list of grid-positions of empty neighbour cells. Update the grid according to the fish-rules"""
-    # implement the bear rules
+    if cur[r, c]['age'] >= bear_breed_age:
+        cur[r, c]['col'] = col_breeding_bear
+    else:
+        cur[r, c]['col'] = col_young_bear
+
+    if cur[r, c]['food'] <= 3:
+        cur[r, c]['col'] = col_starving_bear
+    # if there is a fish eat it
+    if len(neighbour_fish) > 0:
+        cur[r, c]['food'] = bear_starvation
+        r_fish, c_fish = random.choice(neighbour_fish)
+        neighbour_fish.remove((r_fish, c_fish))
+        neighbour_empty.append((r_fish, c_fish))
+        cur[r_fish, c_fish] = empty()
+    else:
+        # decrease food
+        cur[r, c]['food'] -= 1
+
+    # if the bear is starved it dies
+    if cur[r, c]['food'] <= 0:
+        cur[r, c] = empty()
+    else:  # if the bear is not dead it, first, tries to breed
+        if cur[r, c]['age'] >= bear_breed_age and len(neighbour_empty) > 0:
+            # fish breeds to an empty cell
+            r_new, c_new = random.choice(neighbour_empty)
+            cur[r_new, c_new] = new_bear()
+            neighbour_empty.remove((r_new, c_new))
+        # it tries to move
+        if len(neighbour_empty) > 0:
+            r_new, c_new = random.choice(neighbour_empty)
+            cur[r_new, c_new] = cur[r, c]
+            cur[r, c] = empty()
     return cur
 
 def update(surface, cur, sz):
     # for each cell
     for r, c in np.ndindex(cur.shape):
         # if there is a bear or a fish
-        if cur[r, c]['type'] == "fish" or cur[r, c]['type'] == "bear":
+        if cur[r, c]['type'] != "empty":
+            # update age (both age the same)
+            cur[r, c]['age'] += 1
             # calculate neighbours and find the empty and the fish neighbours (other bears are not important, currently)
             neighbours = get_neighbors(cur, r, c)
             neighbour_fish, neighbour_empty = neighbour_fish_empty_rest(cur, neighbours)
@@ -139,10 +195,9 @@ def update(surface, cur, sz):
     return cur
 
 def draw_grid(surface,cur,sz):
-    """Given a grid {cur}, the size of the drawn cells, and a surface to draw on. Draw the """
     for r, c in np.ndindex(cur.shape):
-        col = col_empty # if the cell is empty, the color should be that of "empty"
-        if cur[r, c]['type'] != 'empty': # if the cell is not empty update the color according to its content
+        col = col_empty
+        if cur[r, c]['type'] != 'empty':
             col = cur[r, c]['col']
         pygame.draw.rect(surface, col, (c * sz, r * sz, sz - 1, sz - 1))
 
@@ -151,28 +206,25 @@ def main(dimx, dimy, cellsize,fish,bear):
     surface = pygame.display.set_mode((dimx * cellsize, dimy * cellsize))
     pygame.display.set_caption("Animal Kingdom")
 
-    cells = init(dimx, dimy,fish,bear)
+    cells = init(dimx, dimy, fish, bear)
 
     clock = pygame.time.Clock()
     speed_count = 0
     while True:
-        # event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
 
         surface.fill(col_grid)
-        if(speed_count % SPEED == 0):   # slows down the time step without slowing down the frame rate
-            # update grid
+        if(speed_count % SPEED == 0):
             cells = update(surface, cells, cellsize)
-        # draw the updated grid
         draw_grid(surface, cells, cellsize)
         pygame.display.update()
         clock.tick(FRAMES_PER_SECOND)
         speed_count = speed_count +1
 
 if __name__ == "__main__":
-    fish = 20
+    fish = 10
     bear = 3
-    main(40, 10, 16,fish,bear)
+    main(40, 10, 16, fish, bear)
