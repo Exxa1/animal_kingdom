@@ -33,8 +33,8 @@ def new_fish():
     return fish
 
 # Bear initial definition
-BEAR_BREED_AGE = 8  # 8
-INITIAL_BEAR_FOOD = 8
+BEAR_BREED_AGE = 12  # 8
+INITIAL_BEAR_FOOD = 14 # 10
 
 def new_bear():
     bear = {
@@ -131,13 +131,17 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours)
     # fish dies (overcrowding) if there are 2 or more neighbouring fish
     if (len(fish_neighbours) >= FISH_OVERCROWDING):
         grid[row_index, column_index] = new_empty()
+    else:
+        random_number = random.randint(7, 60) # Determines whether the fish dies of natural causes or not :)
+        fish_age = grid[row_index, column_index]['age']
 
-    # if it does not die
-    elif (len(empty_neighbours) > 0):
-        # move fish to an empty cell
-        row_index_new, column_index_new = random.choice(empty_neighbours)
-        grid[row_index_new, column_index_new] = grid[row_index, column_index]
-        grid[row_index, column_index] = new_empty()
+        if (random_number <= fish_age):
+            grid[row_index, column_index] = new_empty()
+        elif (len(empty_neighbours) > 0):
+            # move fish to an empty cell
+            row_index_new, column_index_new = random.choice(empty_neighbours)
+            grid[row_index_new, column_index_new] = grid[row_index, column_index]
+            grid[row_index, column_index] = new_empty()
 
     return grid
 
@@ -170,11 +174,17 @@ def bear_rules(grid,row_index,column_index,fish_neighbours, empty_neighbours):
             row_index_new, column_index_new = random.choice(empty_neighbours)
             grid[row_index_new, column_index_new] = new_bear()
             empty_neighbours.remove((row_index_new, column_index_new))
-        # it tries to move
-        if len(empty_neighbours) > 0:
+
+        random_number = random.randint(7, 60) # Determines whether the fish dies of natural causes or not :)
+        bear_age = grid[row_index, column_index]['age']
+
+        if (random_number <= bear_age):
+            grid[row_index, column_index] = new_empty()
+        elif len(empty_neighbours) > 0: # it tries to move
             row_index_new, column_index_new = random.choice(empty_neighbours)
             grid[row_index_new, column_index_new] = grid[row_index, column_index]
             grid[row_index, column_index] = new_empty()
+
     return grid
 
 def update_grid(surface, grid):
@@ -204,7 +214,7 @@ def draw_grid(surface, grid, cell_size):
         cell_color = EMPTY_CELL_COLOR
         if grid[row_index, column_index]['type'] != 'empty':
             cell_color = grid[row_index, column_index]['color']
-        pygame.draw.rect(surface, cell_color, (column_index * sz, row_index * cell_size, cell_size - 1, cell_size - 1))
+        pygame.draw.rect(surface, cell_color, (column_index * cell_size, row_index * cell_size, cell_size - 1, cell_size - 1))
 
 def main(cell_count_x, cell_count_y, cell_size, fish_count, bear_count):
     pygame.init()
