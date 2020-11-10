@@ -199,12 +199,12 @@ def update_grid(surface, grid):
                 grid = bear_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours)
     return grid
 
-def draw_grid(surface, grid, sz):
+def draw_grid(surface, grid, cell_size):
     for row_index, column_index in np.ndindex(grid.shape):
         cell_color = EMPTY_CELL_COLOR
         if grid[row_index, column_index]['type'] != 'empty':
             cell_color = grid[row_index, column_index]['color']
-        pygame.draw.rect(surface, cell_color, (column_index * sz, row_index * sz, sz - 1, sz - 1))
+        pygame.draw.rect(surface, cell_color, (column_index * sz, row_index * cell_size, cell_size - 1, cell_size - 1))
 
 def main(cell_count_x, cell_count_y, cell_size, fish_count, bear_count):
     pygame.init()
