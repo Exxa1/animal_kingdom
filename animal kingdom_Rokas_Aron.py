@@ -41,7 +41,7 @@ def new_bear():
         'type': 'bear',
         'age': 0,
         'food': INITIAL_BEAR_FOOD,
-        'col': NEW_BEAR_COLOR,
+        'color': NEW_BEAR_COLOR,
     }
 
     return bear
@@ -98,7 +98,7 @@ def get_neighbours(grid, row_index, column_index):
         if column_index + 1 <= column_max: neighbours.append((row_index + 1, column_index + 1))
     return neighbours
 
-def sort_neighbours(grid, cell_neighbours):
+def sort_neighbours(grid, neighbours):
     # divide the neighbours into fish, empty cells and the rest
     fish_neighbours = []
     empty_neighbours = []
@@ -107,7 +107,7 @@ def sort_neighbours(grid, cell_neighbours):
     for neighbour in neighbours:
         if grid[neighbour]['type'] == 'fish':
             fish_neighbours.append(neighbour)
-        elif cur[neighbour]['type'] == 'bear':
+        elif grid[neighbour]['type'] == 'bear':
             rest_neighbours.append(neighbour)
         else:
             empty_neighbours.append(neighbour)
@@ -133,10 +133,10 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours)
         grid[row_index, column_index] = new_empty()
 
     # if it does not die
-    elif (len(neighbour_empty) > 0):
+    elif (len(empty_neighbours) > 0):
         # move fish to an empty cell
         row_index_new, column_index_new = random.choice(empty_neighbours)
-        grid[row_index_new, column_index_new] = cur[row_index, column_index]
+        grid[row_index_new, column_index_new] = grid[row_index, column_index]
         grid[row_index, column_index] = new_empty()
 
     return grid
@@ -156,7 +156,7 @@ def bear_rules(grid,row_index,column_index,fish_neighbours, empty_neighbours):
         row_index_fish, column_index_fish = random.choice(fish_neighbours)
         fish_neighbours.remove((row_index_fish, column_index_fish))
         empty_neighbours.append((row_index_fish, column_index_fish))
-        grid[row_index_fish, column_index_fish] = nem_empty()
+        grid[row_index_fish, column_index_fish] = new_empty()
     else:
         # decrease food
         grid[row_index, column_index]['food'] -= 1
@@ -169,7 +169,7 @@ def bear_rules(grid,row_index,column_index,fish_neighbours, empty_neighbours):
             # fish breeds to an empty cell
             row_index_new, column_index_new = random.choice(empty_neighbours)
             grid[row_index_new, column_index_new] = new_bear()
-            empty_neighbours.remove((r_new, c_new))
+            empty_neighbours.remove((row_index_new, column_index_new))
         # it tries to move
         if len(empty_neighbours) > 0:
             row_index_new, column_index_new = random.choice(empty_neighbours)
@@ -222,7 +222,7 @@ def main(cell_count_x, cell_count_y, cell_size, fish_count, bear_count):
                 pygame.quit()
                 return
 
-        surface.fill(col_grid)
+        surface.fill(GRID_COLOR)
         if (speed_count % SPEED == 0):
             grid = update_grid(surface, grid)
         draw_grid(surface, grid, cell_size)
