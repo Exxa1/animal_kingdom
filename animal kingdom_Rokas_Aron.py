@@ -3,30 +3,31 @@ import numpy as np
 
 # Colors
 
-NEW_FISH_COLOR = (0, 128, 255)
-YOUNG_FISH_COLOR = (15,82,186)
-BREEDING_FISH_COLOR = (220,35,157)
+NEW_FISH_COLOR = (0, 128, 255) # Light blue
+YOUNG_FISH_COLOR = (15, 82, 186) # Dark blue
+BREEDING_FISH_COLOR = (220, 35, 157) # Hot pink
+STARVING_FISH_COLOR = (73, 75, 104) # Grey-ish blue
 
-NEW_BEAR_COLOR = (150,75,0)
-YOUNG_BEAR_COLOR = (165,113,78)
-BREEDING_BEAR_COLOR = (150,75,0)
-STARVING_BEAR_COLOR = (75,75,75)
+NEW_BEAR_COLOR = (165, 113, 78) # Light brown
+YOUNG_BEAR_COLOR = (150, 75, 0) # Brown
+BREEDING_BEAR_COLOR = (111, 56, 1) # Darker brown
+STARVING_BEAR_COLOR = (111, 111, 114) # Grey
 
-NEW_PLANT_COLOR = (0,150,0)
-YOUNG_PLANT_COLOR = (75,150,0)
-SPREADING_PLANT_COLOR = (120,150,0)
+NEW_PLANT_COLOR = (149, 255, 153) # Light green
+YOUNG_PLANT_COLOR = (70, 229, 81) # Normal green
+SPREADING_PLANT_COLOR = (0, 138, 7) # Dark green
 
-EMPTY_CELL_COLOR = (213, 196, 161)
-GRID_COLOR = (30, 30, 60)
+EMPTY_CELL_COLOR = (213, 196, 161) # Sand
+GRID_COLOR = (30, 30, 60) # Black-ish
 
 FRAMES_PER_SECOND = 60
 SPEED = 15
+STARVATION_VALUE = 2
 
-
-# Fish initial definition
-FISH_BREED_AGE = 12     # 12
-FISH_OVERCROWDING = 4   # 2
-INITIAL_FISH_FOOD = 11 # 10
+# Fish initial values
+FISH_BREED_AGE = 3    # 12
+FISH_OVERCROWDING = 2   # 2
+INITIAL_FISH_FOOD = 10 # 10
 
 def new_fish():
     fish = {
@@ -38,9 +39,9 @@ def new_fish():
 
     return fish
 
-# Plant initial definition
-PLANT_SPREADING_AGE = 5  # 8
-PLANT_OVERCROWDING = 4 # 10
+# Plant initial values
+PLANT_SPREADING_AGE = 2  # 8
+PLANT_OVERCROWDING = 4 # 4
 
 def new_plant():
     plant = {
@@ -51,9 +52,9 @@ def new_plant():
 
     return plant
 
-# Bear initial definition
-BEAR_BREED_AGE = 12  # 8
-INITIAL_BEAR_FOOD = 2 # 10
+# Bear initial values
+BEAR_BREED_AGE = 10  # 8
+INITIAL_BEAR_FOOD = 8 # 10
 
 def new_bear():
     bear = {
@@ -71,7 +72,6 @@ def new_empty():
     }
 
 def initialize_grid(cell_count_x, cell_count_y, fish_count, bear_count, plant_count):
-    # create a list with fish fishes, bear bears and the rest (dimx*dimy-fish-bear) are empty  and shuffle them
     content_list = []
 
     for i in range(fish_count):
@@ -85,7 +85,6 @@ def initialize_grid(cell_count_x, cell_count_y, fish_count, bear_count, plant_co
 
     random.shuffle(content_list)
 
-    # typecast the into a numpy array and reshape the 1 dimensional array to dimx * dimy
     content_1Darray = np.array(content_list)
     grid = np.reshape(content_1Darray, (cell_count_y, cell_count_x)) # First argument is for which row, the second arg. is for which column in that row
 
@@ -120,7 +119,7 @@ def get_neighbours(grid, row_index, column_index):
     return neighbours
 
 def sort_neighbours(grid, neighbours):
-    # divide the neighbours into fish, empty cells and the rest
+    # divide the neighbours into fish, empty cells and the plant cells
     fish_neighbours = []
     plant_neighbours = []
     empty_neighbours = []
@@ -136,12 +135,17 @@ def sort_neighbours(grid, neighbours):
     return fish_neighbours, plant_neighbours, empty_neighbours
 
 def fish_rules(grid, row_index, column_index, fish_neighbours, plant_neighbours, empty_neighbours):
+    # if the fish is older for it to be able to breed, change the color
     if (grid[row_index, column_index]['age'] >= FISH_BREED_AGE):
         grid[row_index, column_index]['color'] = BREEDING_FISH_COLOR
     else:
         grid[row_index, column_index]['color'] = YOUNG_FISH_COLOR
 
-    # if there is a plant eat it
+    # if the fish is about to die, change the color
+    if grid[row_index, column_index]['food'] <= STARVATION_VALUE:
+        grid[row_index, column_index]['color'] = STARVING_FISH_COLOR
+
+    # if there is a plant, eat it
     if len(plant_neighbours) > 0:
         grid[row_index, column_index]['food'] = INITIAL_FISH_FOOD
         row_index_plant, column_index_plant = random.choice(plant_neighbours)
@@ -149,7 +153,6 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, plant_neighbours,
         empty_neighbours.append((row_index_plant, column_index_plant))
         grid[row_index_plant, column_index_plant] = new_empty()
     else:
-        # decrease food
         grid[row_index, column_index]['food'] -= 1
 
     # breeding time
@@ -160,7 +163,7 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, plant_neighbours,
         fish_neighbours.append((row_index_new, column_index_new))
         empty_neighbours.remove((row_index_new, column_index_new))
 
-    # fish dies (overcrowding or starving or natural aging) if there are 2 or more neighbouring fish
+    # fish dies (overcrowding or starving or natural death from probability)
     if (len(fish_neighbours) >= FISH_OVERCROWDING) or (grid[row_index, column_index]['food'] <= 0):
         grid[row_index, column_index] = new_empty()
     else:
@@ -170,7 +173,7 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, plant_neighbours,
         if (random_number <= fish_age):
             grid[row_index, column_index] = new_empty()
         elif (len(empty_neighbours) > 0):
-            # move fish to an empty cell
+            # move the fish to an empty cell
             row_index_new, column_index_new = random.choice(empty_neighbours)
             grid[row_index_new, column_index_new] = grid[row_index, column_index]
             grid[row_index, column_index] = new_empty()
@@ -178,12 +181,14 @@ def fish_rules(grid, row_index, column_index, fish_neighbours, plant_neighbours,
     return grid
 
 def bear_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours):
+    # if the bear is older for it to be able to breed, change the color
     if grid[row_index, column_index]['age'] >= BEAR_BREED_AGE:
         grid[row_index, column_index]['color'] = BREEDING_BEAR_COLOR
     else:
         grid[row_index, column_index]['color'] = YOUNG_BEAR_COLOR
 
-    if grid[row_index, column_index]['food'] <= 3:
+    # if the bear is about to starve, change the color
+    if grid[row_index, column_index]['food'] <= STARVATION_VALUE:
         grid[row_index, column_index]['color'] = STARVING_BEAR_COLOR
 
     # if there is a fish eat it
@@ -194,25 +199,24 @@ def bear_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours)
         empty_neighbours.append((row_index_fish, column_index_fish))
         grid[row_index_fish, column_index_fish] = new_empty()
     else:
-        # decrease food
         grid[row_index, column_index]['food'] -= 1
 
-    # if the bear is starved it dies
+    # if the bear starves it dies
     if grid[row_index, column_index]['food'] <= 0:
         grid[row_index, column_index] = new_empty()
-    else:  # if the bear is not dead it, first, tries to breed
+    else:  # if the bear is not dead it, first, it tries to breed
         if grid[row_index, column_index]['age'] >= BEAR_BREED_AGE and len(empty_neighbours) > 0:
             # bear breeds to an empty cell
             row_index_new, column_index_new = random.choice(empty_neighbours)
             grid[row_index_new, column_index_new] = new_bear()
             empty_neighbours.remove((row_index_new, column_index_new))
 
-        random_number = random.randint(7, 60) # Determines whether the fish dies of natural causes or not :)
+        random_number = random.randint(9, 40) # Determines whether the bear dies of natural causes or not :)
         bear_age = grid[row_index, column_index]['age']
 
         if (random_number <= bear_age):
             grid[row_index, column_index] = new_empty()
-        elif len(empty_neighbours) > 0: # it tries to move
+        elif len(empty_neighbours) > 0: # it tries to move to an empty cell
             row_index_new, column_index_new = random.choice(empty_neighbours)
             grid[row_index_new, column_index_new] = grid[row_index, column_index]
             grid[row_index, column_index] = new_empty()
@@ -220,13 +224,13 @@ def bear_rules(grid, row_index, column_index, fish_neighbours, empty_neighbours)
     return grid
 
 def plant_rules(grid, row_index, column_index, plant_neighbours, empty_neighbours):
-    # change color
+    # if the plant is older for it to be able to spread, change the color
     if (grid[row_index, column_index]['age'] >= PLANT_SPREADING_AGE):
         grid[row_index, column_index]['color'] = SPREADING_PLANT_COLOR
     else:
         grid[row_index, column_index]['color'] = YOUNG_PLANT_COLOR
 
-    # spread
+    # plant spreads
     if (grid[row_index, column_index]['age'] >= PLANT_SPREADING_AGE and len(empty_neighbours) > 0):
         # plant spread to an empty cell
         row_index_new, column_index_new = random.choice(empty_neighbours)
@@ -234,8 +238,7 @@ def plant_rules(grid, row_index, column_index, plant_neighbours, empty_neighbour
         plant_neighbours.append((row_index_new, column_index_new))
         empty_neighbours.remove((row_index_new, column_index_new))
 
-    # overcrowd
-    # chance to dies
+    # plant has a chance to die from overcrowding or natural causes :)
     if (len(plant_neighbours) >= PLANT_OVERCROWDING):
         grid[row_index, column_index] = new_empty()
     else:
@@ -250,13 +253,12 @@ def plant_rules(grid, row_index, column_index, plant_neighbours, empty_neighbour
 def update_grid(surface, grid):
     # for each cell
     for row_index, column_index in np.ndindex(grid.shape):
-        # if there is a bear or a fish
+        # if the cell is not empty
         if (grid[row_index, column_index]['type'] != 'empty'):
-            # update age (both age the same)
+            # update objects age
             grid[row_index, column_index]['age'] += 1
 
-            # calculate neighbours and find the empty and the fish neighbours (other bears are not important, currently)
-
+            # calculate neighbours and sort them
             neighbours = get_neighbours(grid, row_index, column_index)
             fish_neighbours, plant_neighbours, empty_neighbours = sort_neighbours(grid, neighbours)
 
@@ -305,12 +307,12 @@ def main(cell_count_x, cell_count_y, cell_size, fish_count, bear_count, plant_co
         speed_count += 1
 
 if __name__ == "__main__":
-    fish_count = 10
-    bear_count = 3
-    plant_count = 10
+    fish_count = 40 # 10
+    bear_count = 3 # 3
+    plant_count = 15 # 10
 
-    cell_count_x = 40
-    cell_count_y = 10
-    cell_size = 16
+    cell_count_x = 40 # 40
+    cell_count_y = 10 # 10
+    cell_size = 16 # 16
 
     main(cell_count_x, cell_count_y, cell_size, fish_count, bear_count, plant_count)
