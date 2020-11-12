@@ -130,7 +130,7 @@ def sort_neighbours(grid, neighbours):
             fish_neighbours.append(neighbour)
         elif grid[neighbour]['type'] == 'plant':
             plant_neighbours.append(neighbour)
-        else:
+        elif grid[neighbour]['type'] == 'empty':
             empty_neighbours.append(neighbour)
 
     return fish_neighbours, plant_neighbours, empty_neighbours
