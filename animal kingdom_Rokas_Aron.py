@@ -242,7 +242,7 @@ def plant_rules(grid, row_index, column_index, plant_neighbours, empty_neighbour
     if (len(plant_neighbours) >= PLANT_OVERCROWDING):
         grid[row_index, column_index] = new_empty()
     else:
-        random_number = random.randint(7, 60) # Determines whether the fish dies of natural causes or not :)
+        random_number = random.randint(7, 60) # Determines whether the plants dies of natural causes or not :)
         plant_age = grid[row_index, column_index]['age']
 
         if (random_number <= plant_age):
